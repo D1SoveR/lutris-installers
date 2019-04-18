@@ -2,16 +2,18 @@
 
 import html.parser
 import re
-import ssl
+import sys
 import urllib.request
 import urllib.parse
 
 FORUM_URL = "https://forum.zdoom.org/viewtopic.php?f=43&t=57964"
 
-def main():
+def main(destination_file):
+
+	print("Attempting to identify latest version of Netronian Chaos...")
 
 	# Attempt to retrieve the HTML page of ZDoom forum post
-	with request_url(FORUM_URL) as response:
+	with urllib.request.urlopen(FORUM_URL) as response:
 		parser = ZDoomForumPostParser()
 		links_list = parser.feed(response.read().decode("utf-8"))
 
@@ -19,30 +21,43 @@ def main():
 	# do so by processing by version numbers in the links
 	version_regex = re.compile(r"(?<=v\.)([\d\.]+)(?=\.zip)")
 	netronian_links_map = { float(k.group(0)): v for (k, v) in zip(map(version_regex.search, links_list), links_list) if k }
-	netronian_chaos_newest_url = netronian_links_map[max(*netronian_links_map.keys())]
+	latest_version = max(*netronian_links_map.keys())
+
+	print("Found v{0} to be the latest, attempting to download it...\n".format(latest_version))
 
 	# Attempt to retrieve the download link from Mediafire page
-	with request_url(netronian_chaos_newest_url) as response:
-		print(response.getheaders())
+	with urllib.request.urlopen(netronian_links_map[latest_version]) as response:
 		parser = MediafireDownloadParser()
 		download_link = parser.feed(response.read().decode("utf-8"))
 
+	# Attempt to download the file
 	if download_link:
-		request = urllib.request.Request(download_link, headers={ "Referer": netronian_chaos_newest_url });
-		try:
-			response = request_url(request)
-			print(response.getheaders())
-		except Exception as e:
-			print(e.fp.read())
+		request = urllib.request.Request(download_link, headers={ "Referer": netronian_links_map[latest_version] })
+		with urllib.request.urlopen(request) as response:
 
-def request_url(url):
+			current_size = 0
+			total_size = dict(response.getheaders()).get("Content-Length", None)
 
-	# This disables SSL verification
-	no_verify_context = ssl.SSLContext()
-	no_verify_context.verify_mode = ssl.CERT_NONE
-	no_verify_context.verify_flags = ssl.VERIFY_DEFAULT
+			if total_size is not None:
+				total_size = toMB(int(total_size))
+			else:
+				print("Progress: [ UNKNOWN ]", end="\r")
 
-	return urllib.request.urlopen(url, context=no_verify_context)
+			with open(destination_file, mode="wb") as fp:
+				while True:
+					chunk = response.read(1024 * 256)
+					if not len(chunk):
+						break
+					current_size += len(chunk)
+					fp.write(chunk)
+					if total_size is not None:
+						print("Progress [ {0: >5.2f}MB / {1: >5.2f}MB ]".format(toMB(current_size), total_size), end="\r")
+
+		print("Progress: [ {0: >5.2f}MB / {0: >5.2f}MB ]\n".format(toMB(current_size)))
+		print("Netronian Chaos v{0} successfully downloaded!".format(latest_version))
+
+def toMB(bytes):
+	return bytes / 1024 / 1024;
 
 class ZDoomForumPostParser(html.parser.HTMLParser):
 
@@ -117,4 +132,4 @@ class MediafireDownloadParser(html.parser.HTMLParser):
 		return self.download_link
 
 if __name__ == "__main__":
-	main()
+	main(sys.argv[1])
