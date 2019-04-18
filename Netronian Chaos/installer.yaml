@@ -1,0 +1,48 @@
+name: Netronian Chaos
+game_slug: netronian-chaos
+version: Latest
+slug: netronian-chaos-latest
+runner: zdoom
+
+script:
+  game:
+    main_file: $GAMEDIR/freedoom2.wad
+    savedir: $GAMEDIR
+    files:
+      - $GAMEDIR/CJs_Netronian_Chaos.pk3
+      - $GAMEDIR/CJS_NETRO_1.wad
+  zdoom:
+    config: $GAMEDIR/config.ini
+  files:
+    - download_script: https://raw.githubusercontent.com/D1SoveR/lutris-installers/game/netronian-chaos/Netronian%20Chaos/download-latest-version.py
+    - freedoom: https://github.com/freedoom/freedoom/releases/download/v0.11.3/freedoom-0.11.3.zip
+  installer:
+    - chmodx: download_script
+    - execute:
+        args: '"$CACHE/nc.zip" "$CACHE/ncm.zip"'
+        file: download_script
+        descrption: Downloading latest version of files...
+    - extract:
+        dst: $CACHE
+        file: freedoom
+        format: zip
+        description: Extracting Freedoom...
+    - extract:
+        dst: $CACHE
+        file: $CACHE/nc.zip
+        format: zip
+        description: Extracting Netronian Chaos...
+    - extract:
+        dst: $CACHE
+        file: $CACHE/ncm.zip
+        format: zip
+        description: Extracting Bundle in the Jungle...
+    - move:
+        dst: $GAMEDIR
+        src: $CACHE/freedoom2.wad
+    - move:
+        dst: $GAMEDIR
+        src: $CACHE/CJs_Netronian_Chaos.pk3
+    - move:
+        dst: $GAMEDIR
+        src: $CACHE/CJS_NETRO_1.wad
