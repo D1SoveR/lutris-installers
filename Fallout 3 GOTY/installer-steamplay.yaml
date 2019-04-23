@@ -1,0 +1,107 @@
+name: "Fallout 3: Game of the Year Edition"
+game_slug: fallout-3-game-of-the-year-edition
+version: Steam Play
+slug: fallout-3-game-of-the-year-edition-steam-play
+runner: steam
+
+script:
+  game:
+    appid: 22370
+    arch: win32
+  files:
+    - fose: https://fose.silverlock.org/beta/fose_v1_3_beta2.7z
+  system:
+    env:
+      #PROTON_NO_ESYNC=1 PROTON_FORCE_LARGE_ADDRESS_AWARE=1 mesa_glthread=true __GL_THREADED_OPTIMIZATIONS=1 __GL_SHADER_DISK_CACHE=1 %command%
+      PROTON_NO_ESYNC: 1
+      PROTON_FORCE_LARGE_ADDRESS_AWARE: 1
+      mesa_glthread: true
+      __GL_THREADED_OPTIMIZATIONS: 1
+      __GL_SHADER_DISK_CACHE: 1
+  installer:
+
+    # Updating default INI settings to include some tweaks required for better stability
+    - write_config:
+        file: $GAMEDIR/Fallout_default.ini
+        data:
+          General:
+            # Add proper threading support
+            bUseThreadedAI: 1
+            iNumHWThreads: 2
+            bUseThreadedBlood: 1
+            bUseThreadedMorpher: 1
+            bUseThreadedTempEffects: 1
+            bUseThreadedParticleSystem: 1
+            bUseMultiThreadedFaceGen: 1
+            bUseMultiThreadedTrees: 1
+          #Display:
+            bFull Screen: 1
+          Controls:
+            # Disable mouse acceleration
+            fForegroundMouseMult: 0
+            fForegroundMouseAccelBase: 0
+            fForegroundMouseAccelTop: 0
+            fForegroundMouseBase: 0
+
+    # Installing protontricks to install some winetricks and run some extra tooling
+    - execute:
+        description: Installing Protontricks...
+        command: |
+
+          python3 -m venv "$CACHE/venv" &&
+          wget -q -O "$CACHE/venv/bin/winetricks" "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks" &&
+          chmod +x "$CACHE/venv/bin/winetricks" &&
+          source "$CACHE/venv/bin/activate" &&
+          pip install protontricks &&
+
+          cat > "$CACHE/venv/bin/get-steam-runtime" << EOF
+          import os
+          from protontricks.steam import find_steam_path, find_steam_runtime_path
+          os.environ["STEAM_RUNTIME"] = "1"
+          steam_path, steam_root = find_steam_path()
+          with open("$CACHE/venv/bin/activate", mode="at", encoding="utf8") as fp:
+            print("\nexport STEAM_RUNTIME=\"{0}\"".format(find_steam_runtime_path(steam_root)), file=fp)
+          EOF
+          python3 "$CACHE/venv/bin/get-steam-runtime" &&
+          rm "$CACHE/venv/bin/get-steam-runtime"
+
+    # Running the launcher for the first time,
+    # to create the prefix and install base dependencies
+    - execute:
+        description: "Creating the prefix and generating default config...\nClose the launcher without starting the game to proceed"
+        command: |
+
+          source "$CACHE/venv/bin/activate" &&
+          steam steam://rungameid/22370 &&
+          sleep 8 &&
+          export WINESERVER_PID=$(ps -ax | grep wineserver$ | awk '{print $1}')
+          while [[ -d /proc/$WINESERVER_PID ]]; do sleep 1; done
+          sleep 4 &&
+          export WINESERVER_PID=$(ps -ax | grep wineserver$ | awk '{print $1}')
+          while [[ -d /proc/$WINESERVER_PID ]]; do sleep 1; done
+
+    # Applying required winetricks
+    - execute:
+        description: Applying required Winetricks...
+        command: |
+
+          source "$CACHE/venv/bin/activate" &&
+          export WINETRICKS="$CACHE/venv/bin/winetricks" &&
+          "$CACHE/venv/bin/protontricks" 22370 winxp
+
+    # Copying the fake xlive.dll
+    - merge:
+        description: Disabling GFWL...
+        src: /home/d1sover/Development/lutris/Fallout 3 GOTY/xlive.dll
+        dst: $GAMEDIR
+
+    # Installing FOSE
+#    - execute:
+#        description: Installing FOSE...
+#        command: |
+#
+#          cd "$CACHE/fose" &&
+#          7z x "./fose_v1_3_beta2.7z" &&
+#          mv -f *.dll "$GAMEDIR" &&
+#          mv "$GAMEDIR/FalloutLauncher.exe" "$GAMEDIR/FalloutLauncher.exe.bak" &&
+#          mv "./fose_loader.exe" "$GAMEDIR/FalloutLauncher.exe"
