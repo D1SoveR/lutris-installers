@@ -8,6 +8,7 @@ script:
   game:
     appid: 22370
     arch: win32
+  require-binaries: 7z, protontricks
   files:
     - fose: https://fose.silverlock.org/beta/fose_v1_3_beta2.7z
   system:
@@ -34,7 +35,7 @@ script:
             bUseThreadedParticleSystem: 1
             bUseMultiThreadedFaceGen: 1
             bUseMultiThreadedTrees: 1
-          #Display:
+          Display:
             bFull Screen: 1
           Controls:
             # Disable mouse acceleration
@@ -48,22 +49,16 @@ script:
         description: Installing Protontricks...
         command: |
 
-          python3 -m venv "$CACHE/venv" &&
-          wget -q -O "$CACHE/venv/bin/winetricks" "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks" &&
-          chmod +x "$CACHE/venv/bin/winetricks" &&
-          source "$CACHE/venv/bin/activate" &&
-          pip install protontricks &&
-
-          cat > "$CACHE/venv/bin/get-steam-runtime" << EOF
+          cat > "$CACHE/steam-runtime-location" << EOF
           import os
           from protontricks.steam import find_steam_path, find_steam_runtime_path
           os.environ["STEAM_RUNTIME"] = "1"
           steam_path, steam_root = find_steam_path()
-          with open("$CACHE/venv/bin/activate", mode="at", encoding="utf8") as fp:
+          with open("$CACHE/steam-runtime-location", mode="at", encoding="utf8") as fp:
             print("\nexport STEAM_RUNTIME=\"{0}\"".format(find_steam_runtime_path(steam_root)), file=fp)
           EOF
-          python3 "$CACHE/venv/bin/get-steam-runtime" &&
-          rm "$CACHE/venv/bin/get-steam-runtime"
+          python3 "$CACHE/steam-runtime-location" &&
+          rm "$CACHE/steam-runtime-location"
 
     # Running the launcher for the first time,
     # to create the prefix and install base dependencies
@@ -71,7 +66,7 @@ script:
         description: "Creating the prefix and generating default config...\nClose the launcher without starting the game to proceed"
         command: |
 
-          source "$CACHE/venv/bin/activate" &&
+          source "$CACHE/steam-runtime-location" &&
           steam steam://rungameid/22370 &&
           sleep 8 &&
           export WINESERVER_PID=$(ps -ax | grep wineserver$ | awk '{print $1}')
@@ -85,9 +80,8 @@ script:
         description: Applying required Winetricks...
         command: |
 
-          source "$CACHE/venv/bin/activate" &&
-          export WINETRICKS="$CACHE/venv/bin/winetricks" &&
-          "$CACHE/venv/bin/protontricks" 22370 winxp
+          source "$CACHE/steam-runtime-location" &&
+          protontricks 22370 winxp
 
     # Copying the fake xlive.dll
     - merge:
@@ -96,12 +90,21 @@ script:
         dst: $GAMEDIR
 
     # Installing FOSE
-#    - execute:
-#        description: Installing FOSE...
-#        command: |
-#
-#          cd "$CACHE/fose" &&
-#          7z x "./fose_v1_3_beta2.7z" &&
-#          mv -f *.dll "$GAMEDIR" &&
-#          mv "$GAMEDIR/FalloutLauncher.exe" "$GAMEDIR/FalloutLauncher.exe.bak" &&
-#          mv "./fose_loader.exe" "$GAMEDIR/FalloutLauncher.exe"
+    - execute:
+        description: Installing FOSE...
+        command: |
+
+          cd "$CACHE/fose" &&
+          7z x "./fose_v1_3_beta2.7z" &&
+
+          export HASH_LAUNCHER="$(md5sum --binary "$GAMEDIR/FalloutLauncher.exe" | awk '{print $1}')" &&
+          export HASH_LOADER="$(md5sum --binary "./fose_loader.exe" | awk '{print $1}')"
+
+          # Do not overwrite files if FOSE has already been installed
+          if [ $HASH_LAUNCHER != $HASH_LOADER ]; then
+            mv -f *.dll "$GAMEDIR" &&
+            mv "$GAMEDIR/FalloutLauncher.exe" "$GAMEDIR/FalloutLauncher.exe.bak" &&
+            mv "./fose_loader.exe" "$GAMEDIR/FalloutLauncher.exe"
+          else
+            echo "FOSE already installed, skipping"
+          fi
