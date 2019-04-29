@@ -1,0 +1,48 @@
+name: Hedon
+game_slug: hedon
+version: Steam Data
+slug: hedon-steam-data
+runner: zdoom
+
+script:
+  game:
+    main_file: archive
+    savedir: $GAMEDIR
+  zdoom:
+    config: $GAMEDIR/config.ini
+  files:
+    - archive: $STEAM:1072150:gzdoom/Hedon.ipk3
+    - config: $STEAM:1072150:gzdoom/gzdoom.ini
+  installer:
+    - merge:
+        description: "Copying configuration to installation directory..."
+        dst: $GAMEDIR
+        src: config
+    - execute:
+        description: "Copying configuration to installation directory..."
+        command: |
+          mv "$GAMEDIR/gzdoom.ini" "$GAMEDIR/config.ini" &&
+          mkdir "$GAMEDIR/screenshots"
+    - execute:
+        description: "Adjusting text scale to screen resolution..."
+        command: |
+
+          if [ $RESOLUTION_HEIGHT -ge 1080 ]; then
+            sed -i 's/con_scaletext=1/con_scaletext=2/g' "$GAMEDIR/config.ini"
+          fi
+    - write_config:
+        description: "First-time configuration..."
+        file: $GAMEDIR/config.ini
+        data:
+          GlobalSettings:
+            saveloadconfirmation: false
+            screenshot_dir: $GAMEDIR/screenshots
+            vid_adapter: 0
+            menu_resolution_custom_width: $RESOLUTION_WIDTH
+            menu_resolution_custom_height: $RESOLUTION_HEIGHT
+            vid_scale_customwidth: $RESOLUTION_WIDTH
+            vid_scale_customheight: $RESOLUTION_HEIGHT
+          Hedon.ConsoleVariables:
+            am_rotate: 1
+          Hedon.Bindings:
+            f12: screenshot
