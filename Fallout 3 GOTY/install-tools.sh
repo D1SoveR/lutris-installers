@@ -8,6 +8,10 @@ LOCATION_GAME_PREFIX=$(protontricks --command 'echo $WINEPREFIX' 22370)
 
 WINETRICKS_PARAMS="--unattended arch=32 prefix=$PREFIX_NAME mimeassoc=off"
 
+# Mark start of script run, so that we can use the timestamp
+# and remove unneeded shortcuts and icons
+touch "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp"
+
 cat << EOF
 You will need to provide installers for several tools:
  * Fallout 3 Mod Manager (FOMM)
@@ -43,7 +47,7 @@ if [ -z "$INSTALLER_LOOT" ]; then
     exit 1
 fi
 
-INSTALLER_FO3EDIT=$(zenity --file-selection --title="Select FO3Edit archive (.zip file)" --file-filter '*.zip' 2> /dev/null)
+INSTALLER_FO3EDIT=$(zenity --file-selection --title="Select FO3Edit archive (.7z file)" --file-filter '*.7z' 2> /dev/null)
 if [ -z "$INSTALLER_FO3EDIT" ]; then
     echo "Need to provide archive containing FO3Edit!"
     exit 1
@@ -126,29 +130,62 @@ else
           "$PREFIX_PATH/drive_c/users/$USER/My Documents/My Games/Fallout3"
 fi
 
+# ==== Installing toolset ====
+
 echo "Installing FOMM..." &&
 WINEPREFIX="$PREFIX_PATH" wine "$INSTALLER_FOMM" /SILENT &&
 
-exit 0
-# Rest
+echo "Installing LOOT..." &&
+WINEPREFIX="$PREFIX_PATH" wine "$INSTALLER_LOOT" /SILENT &&
 
-echo "Cleaning up..." &&
+echo "Installing FO3Edit..." &&
+mkdir -p "$PREFIX_PATH/drive_c/Program Files/FO3Edit" &&
+7z x -o"$PREFIX_PATH/drive_c/Program Files/FO3Edit" "$INSTALLER_FO3EDIT" > /dev/null &&
+chmod -R u-rwx+rwX,g-rwx+rX,o-rwx+rX "$PREFIX_PATH/drive_c/Program Files/FO3Edit"
 
-GAME_LOCATION=$(WINEPREFIX="$PREFIX_FOMM" winepath -w "$(protontricks --command pwd 22370)")
-cat > "$PREFIX_FOMM/drive_c/fallout-location.reg" << EOF
+echo "Installing Merge Plugins..." &&
+mkdir -p "$PREFIX_PATH/drive_c/Program Files/MergePlugins" &&
+unzip "$INSTALLER_MERGE" -d "$PREFIX_PATH/drive_c/Program Files/MergePlugins" > /dev/null &&
+chmod -R u-rwx+rwX,g-rwx+rX,o-rwx+rX "$PREFIX_PATH/drive_c/Program Files/MergePlugins"
+
+echo "Removing unneeded menu shortcuts..." &&
+find ~/.local/share/applications -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
+find ~/.local/share/applications -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
+find ~/.local/share/icons -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
+find ~/.local/share/icons -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
+rm "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp"
+
+# ==== Configuring toolset ====
+
+echo "Configuring toolset..." &&
+
+cat > "$PREFIX_PATH/drive_c/fallout-location.reg" << EOF
 REGEDIT4
 
 [HKEY_LOCAL_MACHINE\Software\Bethesda Softworks\Fallout3]
-"Installed Path"="${GAME_LOCATION//\\/\\\\}"
+"Installed Path"="C:\\\\Program Files\\\\Fallout 3"
 
 [HKEY_LOCAL_MACHINE\Software\Wow6432Node\Bethesda Softworks\Fallout3]
-"Installed Path"="${GAME_LOCATION//\\/\\\\}"
+"Installed Path"="C:\\\\Program Files\\\\Fallout 3"
 EOF
-WINEPREFIX="$PREFIX_FOMM" wine regedit "$PREFIX_FOMM/drive_c/fallout-location.reg"
+WINEPREFIX="$PREFIX_PATH" wine regedit "$PREFIX_PATH/drive_c/fallout-location.reg" &&
+rm "$PREFIX_PATH/drive_c/fallout-location.reg"
 
-mv "$(find "$XDG_DATA_HOME/applications" -type f -name "FOMM.desktop")" "$XDG_DATA_HOME/applications" &&
-rm -rf "$XDG_DATA_HOME/applications/wine" &&
-sed -i'' 's/Name=FOMM/Name=Fallout 3 Mod Manager/' "$XDG_DATA_HOME/applications/FOMM.desktop" &&
-echo "Categories=Game;Utility;" >> "$XDG_DATA_HOME/applications/FOMM.desktop" &&
-xdg-desktop-menu forceupdate &&
-echo "" && echo "FOMM has been successfully installed!"
+echo "Installing toolset launcher..." &&
+cat "$(dirname "$0")/launcher.sh" | sed 's,prefix-placeholder,'"$PREFIX_PATH"',' > "$PREFIX_PATH/drive_c/launcher.sh" &&
+chmod +x "$PREFIX_PATH/drive_c/launcher.sh"
+
+LAUNCHER_PATH="$PREFIX_PATH/drive_c/launcher.sh"
+cat > "$HOME/.local/share/applications/$PREFIX_NAME.desktop" << EOF
+[Desktop Entry]
+Name=Fallout 3 Toolset
+Exec=${LAUNCHER_PATH// /\\\\ }
+Type=Application
+StartupNotify=false
+Icon=emblem-system
+Categories=Game
+Keywords=fallout;fo3;fomm;fo3edit;loot;merge
+EOF
+xdg-desktop-menu forceupdate
+
+echo "" && echo "Fallout 3 Toolset has been successfully installed!"
