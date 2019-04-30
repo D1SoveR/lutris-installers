@@ -130,7 +130,7 @@ else
           "$PREFIX_PATH/drive_c/users/$USER/My Documents/My Games/Fallout3"
 fi
 
-# ==== Installing toolset ====
+# ==== Installing toolkit ====
 
 echo "Installing FOMM..." &&
 WINEPREFIX="$PREFIX_PATH" wine "$INSTALLER_FOMM" /SILENT &&
@@ -155,10 +155,9 @@ find ~/.local/share/icons -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestam
 find ~/.local/share/icons -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
 rm "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp"
 
-# ==== Configuring toolset ====
+# ==== Configuring toolkit ====
 
-echo "Configuring toolset..." &&
-
+echo "Configuring toolkit..." &&
 cat > "$PREFIX_PATH/drive_c/fallout-location.reg" << EOF
 REGEDIT4
 
@@ -171,14 +170,14 @@ EOF
 WINEPREFIX="$PREFIX_PATH" wine regedit "$PREFIX_PATH/drive_c/fallout-location.reg" &&
 rm "$PREFIX_PATH/drive_c/fallout-location.reg"
 
-echo "Installing toolset launcher..." &&
+echo "Installing toolkit launcher..." &&
 cat "$(dirname "$0")/launcher.sh" | sed 's,prefix-placeholder,'"$PREFIX_PATH"',' > "$PREFIX_PATH/drive_c/launcher.sh" &&
 chmod +x "$PREFIX_PATH/drive_c/launcher.sh"
 
 LAUNCHER_PATH="$PREFIX_PATH/drive_c/launcher.sh"
 cat > "$HOME/.local/share/applications/$PREFIX_NAME.desktop" << EOF
 [Desktop Entry]
-Name=Fallout 3 Toolset
+Name=Fallout 3 Toolkit
 Exec=${LAUNCHER_PATH// /\\\\ }
 Type=Application
 StartupNotify=false
@@ -188,4 +187,4 @@ Keywords=fallout;fo3;fomm;fo3edit;loot;merge
 EOF
 xdg-desktop-menu forceupdate
 
-echo "" && echo "Fallout 3 Toolset has been successfully installed!"
+echo "" && echo "Fallout 3 Toolkit has been successfully installed!"
