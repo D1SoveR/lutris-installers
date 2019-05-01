@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ -z "$XDG_DATA_HOME" ]; then
+    export XDG_DATA_HOME="$HOME/.local/share"
+fi
+
 PREFIX_NAME="fo3tools"
 PREFIX_PATH="$XDG_DATA_HOME/wineprefixes/$PREFIX_NAME"
 
@@ -95,6 +99,7 @@ if [ -n "$LOCATION_SETTINGS" ]; then
 
     mkdir "$LOCATION_SETTINGS/Mods"
     mkdir "$LOCATION_SETTINGS/Install Info"
+    ln -s "$LOCATION_GAME" "$LOCATION_SETTINGS/Game Data"
 
 fi
 
@@ -106,8 +111,8 @@ WINEDLLOVERRIDES=mscoree=d winetricks $WINETRICKS_PARAMS isolate_home &&
 export WINEARCH=win32 &&
 export WINEPREFIX="$PREFIX_PATH" &&
 export WINEDEBUG="-all" &&
-echo "Installing .NET 4.0..." &&
-winetricks $WINETRICKS_PARAMS dotnet40 &&
+echo "Installing .NET 4.0 and core fonts..." &&
+winetricks $WINETRICKS_PARAMS dotnet40 corefonts &&
 
 echo "Linking relevant directories..." &&
 mkdir -p "$PREFIX_PATH/drive_c/users/$USER/Local Settings/Application Data" \

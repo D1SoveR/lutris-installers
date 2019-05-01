@@ -29,7 +29,7 @@ script:
           General:
             bFastExit: 1
             bUseThreadedAI: 1
-            iNumHWThreads: 3
+            iNumHWThreads: 2
             bUseThreadedBlood: 1
             bUseThreadedMorpher: 1
             bUseThreadedTempEffects: 1
@@ -93,11 +93,11 @@ script:
           from protontricks.steam import find_steam_path, find_steam_runtime_path
           os.environ["STEAM_RUNTIME"] = "1"
           steam_path, steam_root = find_steam_path()
-          with open("$CACHE/steam-runtime-location", mode="at", encoding="utf8") as fp:
+          with open("$CACHE/steam-runtime-location", mode="wt", encoding="utf8") as fp:
             print("\nexport STEAM_RUNTIME=\"{0}\"".format(find_steam_runtime_path(steam_root)), file=fp)
           EOF
           python3 "$CACHE/steam-runtime-location" &&
-          rm "$CACHE/steam-runtime-location"
+          chmod +x "$CACHE/steam-runtime-location"
 
     # Running the launcher for the first time,
     # to create the prefix and install base dependencies
