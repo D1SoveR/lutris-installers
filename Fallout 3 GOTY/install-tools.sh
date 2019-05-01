@@ -113,7 +113,7 @@ echo "Linking relevant directories..." &&
 mkdir -p "$PREFIX_PATH/drive_c/users/$USER/Local Settings/Application Data" \
          "$PREFIX_PATH/drive_c/users/$USER/My Documents/My Games" &&
 rmdir "$PREFIX_PATH/drive_c/users/$USER/Downloads" &&
-ln -s "~/Downloads" "$PREFIX_PATH/drive_c/users/$USER/Downloads" &&
+ln -s "$HOME/Downloads" "$PREFIX_PATH/drive_c/users/$USER/Downloads" &&
 ln -s "$LOCATION_GAME" "$PREFIX_PATH/drive_c/Program Files/Fallout 3"
 
 if [ -n "$LOCATION_SETTINGS" ]; then
@@ -149,10 +149,10 @@ unzip "$INSTALLER_MERGE" -d "$PREFIX_PATH/drive_c/Program Files/MergePlugins" > 
 chmod -R u-rwx+rwX,g-rwx+rX,o-rwx+rX "$PREFIX_PATH/drive_c/Program Files/MergePlugins"
 
 echo "Removing unneeded menu shortcuts..." &&
-find ~/.local/share/applications -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
-find ~/.local/share/applications -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
-find ~/.local/share/icons -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
-find ~/.local/share/icons -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
+find "$XDG_DATA_HOME/applications" -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
+find "$XDG_DATA_HOME/applications" -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
+find "$XDG_DATA_HOME/icons" -type f -newer "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp" -delete &&
+find "$XDG_DATA_HOME/icons" -mindepth 1 -type d -depth -exec rmdir {} \; 2> /dev/null &&
 rm "$XDG_RUNTIME_DIR/$PREFIX_NAME-timestamp"
 
 # ==== Configuring toolkit ====

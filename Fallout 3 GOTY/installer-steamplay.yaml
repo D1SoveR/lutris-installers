@@ -96,15 +96,15 @@ script:
 
           cd "$CACHE/fose" &&
           7z x "./fose_v1_3_beta2.7z" &&
+          mv -f *.dll *.exe "$GAMEDIR" &&
 
           export HASH_LAUNCHER="$(md5sum --binary "$GAMEDIR/FalloutLauncher.exe" | awk '{print $1}')" &&
-          export HASH_LOADER="$(md5sum --binary "./fose_loader.exe" | awk '{print $1}')"
+          export HASH_LOADER="$(md5sum --binary "$GAMEDIR/fose_loader.exe" | awk '{print $1}')"
 
           # Do not overwrite files if FOSE has already been installed
           if [ $HASH_LAUNCHER != $HASH_LOADER ]; then
-            mv -f *.dll "$GAMEDIR" &&
             mv "$GAMEDIR/FalloutLauncher.exe" "$GAMEDIR/FalloutLauncher.exe.bak" &&
-            mv "./fose_loader.exe" "$GAMEDIR/FalloutLauncher.exe"
+            ln -s "$GAMEDIR/fose_loader.exe" "$GAMEDIR/FalloutLauncher.exe"
           else
             echo "FOSE already installed, skipping"
           fi
