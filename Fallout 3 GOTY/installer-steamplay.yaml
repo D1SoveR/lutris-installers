@@ -23,20 +23,43 @@ script:
 
     # Updating default INI settings to include some tweaks required for better stability
     - write_config:
+        description: Improving configuration...
         file: $GAMEDIR/Fallout_default.ini
         data:
           General:
-            # Add proper threading support
+            bFastExit: 1
             bUseThreadedAI: 1
-            iNumHWThreads: 2
+            iNumHWThreads: 3
             bUseThreadedBlood: 1
             bUseThreadedMorpher: 1
             bUseThreadedTempEffects: 1
             bUseThreadedParticleSystem: 1
             bUseMultiThreadedFaceGen: 1
             bUseMultiThreadedTrees: 1
+            bActorLookWithHavok: 1
+            bLoadFaceGenHeadEGTFiles: 1
+          BackgroundLoad:
+            bBackgroundLoadLipFiles: 1
+            bBackgroundCellLoads: 1
+            bBackgroundPathing: 1
+            bUseBackgroundFileLoader: 1
+            bLoadBackgroundFaceGen: 1
+            bLoadHelmetsInBackground: 1
+            bCloneModelsInBackground: 1
+            iBackgroundLoadExtraMaxFPS: 60
+            iBackgroundLoadExtraMinFPS: 30
+          MAIN:
+            bCloneModelsInBackground: 1
+          Pathfinding:
+            bBackgroundPathing: 1
+            bBackgroundNavmeshUpdate: 1
+          HAVOK:
+            iNumHavokThreads: 2
           Display:
             bFull Screen: 1
+          Audio:
+            bEnableAudioCache: 1
+            bMultiThreadAudio: 0
           Controls:
             # Disable mouse acceleration
             fForegroundMouseMult: 0
@@ -44,9 +67,25 @@ script:
             fForegroundMouseAccelTop: 0
             fForegroundMouseBase: 0
 
+    - write_config:
+        description: Improving visual settings...
+        file: $GAMEDIR/Fallout_default.ini
+        data:
+          Display:
+            fDefaultFOV: 90
+            fPipboy1stPersonFOV: 60
+            bDoTallGrassEffect: 1
+          Grass:
+            iMinGrassSize: 40
+            iMaxGrassTypesPerTexure: 6
+            fGrassMinStartFadeDistance: 0.0
+            fGrassMaxStartFadeDistance: 7000.0
+            fGrassDefaultStartFadeDistance: 3500.0
+            fGrassFadeRange: 1000.0
+
     # Installing protontricks to install some winetricks and run some extra tooling
     - execute:
-        description: Installing Protontricks...
+        description: Retrieving location of Steam Runtime...
         command: |
 
           cat > "$CACHE/steam-runtime-location" << EOF
