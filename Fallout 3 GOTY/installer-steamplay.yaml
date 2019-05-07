@@ -120,7 +120,7 @@ script:
         command: |
 
           source "$CACHE/steam-runtime-location" &&
-          protontricks 22370 winxp
+          protontricks 22370 winxp galliumnine
 
     # Copying the fake xlive.dll
     - merge:
